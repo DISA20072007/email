@@ -52,15 +52,35 @@ public class EmailController {
 
     @RequestMapping("/actions/setTopic")
     @ResponseBody
-    public Response setTopic(@RequestParam(name = "id") int id,
-                             @RequestParam(name = "name") String name) {
+    public Response setTopic(@RequestParam(name = "id") String id,
+                             @RequestParam(name = "name") String name,
+                             @RequestParam(name = "isNew", defaultValue = "false") boolean isNew) {
 
         try {
-            if (StringUtils.isEmpty(name)) {
-                return new Response("Наименование темы не может быть пустой");
+            if (StringUtils.isEmpty(id)) {
+                return new Response("Идентификатор темы не может быть пустым");
             }
 
-            emailTopicDao.setTopic(id, name);
+            int topicId;
+            try {
+                topicId = Integer.parseInt(id);
+            } catch (Exception ex) {
+                return new Response("Идентификатор темы должен быть целочисленного типа");
+            }
+
+            if (topicId <= 0) {
+                return new Response("Идентификатор темы должен быть больше нуля");
+            }
+
+            if (isNew && emailTopicDao.getMailTopic(Integer.parseInt(id)) != null) {
+                return new Response("Тема уже существует с id = " + id);
+            }
+
+            if (StringUtils.isEmpty(name)) {
+                return new Response("Наименование темы не может быть пустым");
+            }
+
+            emailTopicDao.setTopic(Integer.parseInt(id), name);
         } catch (Exception ex) {
             return new Response(ex.getMessage());
         }
@@ -120,6 +140,12 @@ public class EmailController {
     @ResponseBody
     public List<EmailTopic> getTopics() {
         return getEmailTopics();
+    }
+
+    @RequestMapping(value = "/getEmails", method = RequestMethod.GET)
+    @ResponseBody
+    public List<Email> getEmailData() {
+        return getEmails();
     }
 
     @RequestMapping(value = "/getBranches", method = RequestMethod.GET)

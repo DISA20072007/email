@@ -1,0 +1,317 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+
+        <link rel="stylesheet" type="text/css" href="/webjars/bootstrap/3.3.7/css/bootstrap.min.css"/>
+        <link rel="stylesheet" type="text/css" href="/webjars/datatables/1.10.16/css/dataTables.bootstrap.min.css"/>
+
+        <script src="/webjars/angular/1.7.0/angular.js"></script>
+        <script src="/webjars/angular-messages/1.7.0/angular-messages.js"></script>
+
+        <style type="text/css">
+            .dataTables_filter {
+                width: 90%;
+            }
+
+            .toolbar {
+                float: left;
+            }
+
+            .alert {
+                padding: 0px;
+                margin-bottom: 0px;
+            }
+        </style>
+    </head>
+
+    <body ng-app="emailApp">
+        <div id="messageInfo">
+            <div class="alert alert-info alert-dismissible">
+                <span ng-if="!errorMessage">Тестовая версия приложения для работы с почтой</span>
+            </div>
+            <div class="alert alert-danger">
+                <span ng-if="errorMessage">{{errorMessage}}</span>
+            </div>
+        </div>
+
+        <div ng-controller="topicsController" ng-init="init()">
+            <span style="font-weight:20">Темы писем</span>
+
+            <button id="topicAdd" ng-disabled="mode == 'add'" class="btn-default glyphicon glyphicon-plus" ng-click="addTopicRow()"></button>
+
+            <table id="topicsTable" class="table table-bordered" style="width: 65%;">
+                <thead>
+                <tr>
+                    <th class="col-md-1">Идентификатор</th>
+                    <th class="col-md-8">Наименование</th>
+                    <th class="col-md-1">Действия</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr ng-repeat="topic in topics" ng-form name="topicForm">
+                    <td>
+                        <span ng-if="mode != 'add' || rowId != topic.rowId">{{topic.id}}</span>
+                        <input name="topicId" ng-if="mode == 'add' && rowId == topic.rowId" ng-model="topic.id" ng-pattern="/^[0-9]+$/" maxlength="10" required/>
+                        <div ng-messages="topicForm.topicId.$error">
+                            <div ng-message="required" class="alert alert-danger">Введите значение</div>
+                            <div ng-message="pattern" class="alert alert-danger">Значение должно быть целочисленного типа</div>
+                        </div>
+                    </td>
+                    <td>
+                        <span ng-if="mode == 'view' || mode == 'delete' || rowId != topic.rowId">{{topic.name}}</span>
+                        <input name="topicName" style="width: 100%;" ng-if="(mode == 'add' || mode == 'edit') && rowId == topic.rowId" ng-model="topic.name" maxlength="100" required/>
+                        <div ng-messages="topicForm.topicName.$error">
+                            <div ng-message="required" class="alert alert-danger">Введите значение</div>
+                        </div>
+                    </td>
+                    <td>
+                        <button ng-if="mode == 'view' || rowId != topic.rowId"
+                                class="btn-default glyphicon glyphicon-pencil" ng-click="setRowMode(topic.rowId, 'edit')"></button>
+                        <button ng-if="(mode == 'add' || mode == 'edit') && rowId == topic.rowId" ng-disabled="!topicForm.$valid"
+                                class="btn-success glyphicon glyphicon-ok" ng-click="confirmAction(topic)"></button>
+                        <button ng-if="mode == 'delete' && rowId == topic.rowId"
+                                class="btn-success glyphicon glyphicon-ok" ng-click="confirmAction(topic)"></button>
+
+                        <button ng-if="mode == 'view' || rowId != topic.rowId"
+                                class="btn-default glyphicon glyphicon-minus" ng-click="setRowMode(topic.rowId, 'delete')"></button>
+                        <button ng-if="mode != 'view' && rowId == topic.rowId"
+                                class="btn-danger glyphicon glyphicon-remove" ng-click="init()"></button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div ng-controller="emailsController" ng-init="init()">
+            <span style="font-weight:20">Темы писем</span>
+
+            <button id="emailAdd" ng-disabled="mode == 'add'" class="btn-default glyphicon glyphicon-plus" ng-click="addEmailRow()"></button>
+
+            <table id="emailsTable" class="table table-bordered" style="width: 100%;">
+                <thead>
+                <tr>
+                    <th>Тема письма</th>
+                    <th>Отделение банка</th>
+                    <th>Категория получателей</th>
+                    <th align="left">Адрес электронной почты</th>
+                    <th>Действия</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr ng-repeat="email in emails" ng-form name="emailForm">
+                    <td align="center">
+                        <span ng-if="mode == 'view' || mode == 'delete' || rowId != email.rowId">{{email.topic.name}}</span>
+                        <select name="topicName" style="width: 100%;" ng-if="(mode == 'add' || mode == 'edit') && rowId == email.rowId"
+                                ng-options="topic as topic.name for topic in topics track by topic.id" ng-model="selected" required></select>
+                        <div ng-messages="emailForm.topicName.$error">
+                            <div ng-message="required" class="alert alert-danger">Выберите значение</div>
+                        </div>
+                    </td>
+                    <td align="center">
+                        <span ng-if="mode == 'view' || mode == 'delete' || rowId != email.rowId">{{email.branch.name}}</span>
+                        <select name="branchName" style="width: 100%;" ng-if="(mode == 'add' || mode == 'edit') && rowId == email.rowId"
+                                ng-options="branch as branch.name for branch in branches track by branch.id" ng-model="selected"></select>
+                    </td>
+                    <td align="center">
+                        <span ng-if="mode == 'view' || mode == 'delete' || rowId != email.rowId">{{email.category.name}}</span>
+                        <select name="categoryName" style="width: 100%;" ng-if="(mode == 'add' || mode == 'edit') && rowId == email.rowId"
+                                ng-options="category as category.name for category in categories track by category.id" ng-model="selected" required></select>
+                        <div ng-messages="emailForm.categoryName.$error">
+                            <div ng-message="required" class="alert alert-danger">Выберите значение</div>
+                        </div>
+                    </td>
+                    <td align="center" style="max-width: 600px; word-wrap: break-word;">
+                        <span style="margin-left: 5px;" ng-if="mode == 'view' || mode == 'delete' || rowId != email.rowId"
+                              ng-repeat="emailAddress in email.emailAddress.split(',') track by $index">{{emailAddress}}</span>
+                        <input name="emailAddress" type="email" style="width: 100%; margin-top:5px;" ng-if="(mode == 'add' || mode == 'edit') && rowId == email.rowId"
+                               ng-repeat="emailAddress in email.emailAddress.split(',') track by $index" ng-model="emailAddress"/>
+                        <button ng-if="(mode == 'add' || mode == 'edit') && rowId == email.rowId"
+                                class="btn-success glyphicon glyphicon-plus" ng-click="addEmailAddressRow(email)"></button>
+                    </td>
+                    <td>
+                        <button ng-if="mode == 'view' || rowId != email.rowId"
+                                class="btn-default glyphicon glyphicon-pencil" ng-click="setRowMode(email.rowId, 'edit')"></button>
+                        <button ng-if="(mode == 'add' || mode == 'edit') && rowId == email.rowId" ng-disabled="!emailForm.$valid"
+                                class="btn-success glyphicon glyphicon-ok" ng-click="confirmAction(email)"></button>
+                        <button ng-if="mode == 'delete' && rowId == email.rowId"
+                                class="btn-success glyphicon glyphicon-ok" ng-click="confirmAction(email)"></button>
+
+                        <button ng-if="mode == 'view' || rowId != email.rowId"
+                                class="btn-default glyphicon glyphicon-minus" ng-click="setRowMode(email.rowId, 'delete')"></button>
+                        <button ng-if="mode != 'view' && rowId == email.rowId"
+                                class="btn-danger glyphicon glyphicon-remove" ng-click="init()"></button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </body>
+
+    <script>
+        var app = angular.module('emailApp', ['ngMessages']);
+
+        app.run(function($rootScope, $location, $anchorScroll) {
+            $rootScope.showErrorMessage = function(errorMessage) {
+                $rootScope.errorMessage = errorMessage;
+                $location.hash('messageInfo');
+                $anchorScroll();
+            };
+        });
+
+        app.controller('topicsController', function($scope, $rootScope, $http, $httpParamSerializer) {
+            $scope.init = function() {
+                $scope.getTopics();
+
+                $scope.mode = 'view';
+                $scope.rowId = -1;
+                $rootScope.errorMessage = '';
+            }
+
+            $scope.getTopics = function() {
+                $http.get("/email/getTopics")
+                .then(function(response) {
+                    $scope.topics = response.data;
+                    for (var i = 0; i < $scope.topics.length; i ++) {
+                        $scope.topics[i].rowId = i;
+                    }
+                });
+            }
+
+            $scope.addTopicRow = function() {
+                $scope.mode = 'add';
+                $scope.rowId = $scope.length;
+
+                $scope.topics.push({rowId: $scope.rowId, 'id': '', 'name': ''});
+            }
+
+            $scope.setRowMode = function(rowId, mode) {
+                if ($scope.mode == 'add') {
+                    $scope.topics.splice($scope.topics.length - 1, 1);
+                }
+
+                $scope.rowId = rowId;
+                $scope.mode = mode;
+            }
+
+            $scope.doAction = function(actionName, data) {
+                $http.post("/email/actions/" + actionName, data,
+                {
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+                })
+                .then(function(response) {
+                    if (response.data.success) {
+                        $scope.init();
+                    } else {
+                        $rootScope.showErrorMessage(response.data.errorMessage);
+                    }
+                })
+            }
+
+            $scope.confirmAction = function(topic) {
+                if ($scope.mode == 'add' || $scope.mode == 'edit') {
+                    var request = {'id': topic.id, 'name': topic.name, 'isNew': ($scope.mode == 'add' ? "true" : "false")};
+                    $scope.doAction("setTopic", $httpParamSerializer(request));
+                } else if ($scope.mode == 'delete') {
+                    $scope.doAction("deleteTopic", 'id=' + topic.id);
+                }
+            }
+        });
+
+        app.controller('emailsController', function($scope, $rootScope, $http, $httpParamSerializer) {
+            $scope.init = function() {
+                $scope.getEmails();
+                $scope.getTopics();
+                $scope.getBranches();
+                $scope.getCategories();
+
+                $scope.mode = 'view';
+                $scope.rowId = -1;
+                $rootScope.errorMessage = '';
+            }
+
+            $scope.getEmails = function() {
+                $http.get("/email/getEmails")
+                .then(function(response) {
+                    $scope.emails = response.data;
+                    for (var i = 0; i < $scope.emails.length; i ++) {
+                        $scope.emails[i].rowId = i;
+                    }
+                });
+            }
+
+            $scope.getTopics = function() {
+                $http.get("/email/getTopics")
+                .then(function(response) {
+                    $scope.topics = response.data;
+                });
+            }
+
+            $scope.getBranches = function() {
+                $http.get("/email/getBranches")
+                .then(function(response) {
+                    $scope.branches = response.data;
+                    $scope.branches.push({'id': '', 'name': ''});
+                });
+            }
+
+            $scope.getCategories = function() {
+                $http.get("/email/getCategories")
+                .then(function(response) {
+                    $scope.categories = response.data;
+                });
+            }
+
+            $scope.addEmailRow = function() {
+                $scope.mode = 'add';
+                $scope.rowId = $scope.length;
+
+                $scope.getTopics();
+
+                $scope.emails.push({rowId: $scope.rowId, 'topic': {},'branch': {}, 'category': {}, 'emailAddress': ''});
+            }
+
+            $scope.addEmailAddressRow = function(email) {
+                email.emailAddress = email.emailAddress + ',';
+            }
+
+            $scope.setRowMode = function(rowId, mode) {
+                if ($scope.mode == 'add') {
+                    $scope.emails.splice($scope.emails.length - 1, 1);
+                }
+
+                $scope.rowId = rowId;
+                $scope.mode = mode;
+            }
+
+            $scope.doAction = function(actionName, data) {
+                $http.post("/email/actions/" + actionName, data,
+                {
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+                })
+                .then(function(response) {
+                    if (response.data.success) {
+                        $scope.init();
+                    } else {
+                        $rootScope.showErrorMessage(response.data.errorMessage);
+                    }
+                })
+            }
+
+            $scope.confirmAction = function(email) {
+                if (!email.emailAddress) {
+                    $rootScope.showErrorMessage('Адрес электронной почты должен быть заполнен');
+                }
+                if ($scope.mode == 'add' || $scope.mode == 'edit') {
+                    var request = {'topicId': email.topic.id, 'branchId': email.branch.id, 'categoryId': email.category.id,
+                                    'emailAddress': email.emailAddress, 'isNew': ($scope.mode == 'add' ? "true" : "false")};
+                    $scope.doAction("setEmail", $httpParamSerializer(request));
+                } else if ($scope.mode == 'delete') {
+                    var request = {'topicId': email.topic.id, 'branchId': email.branch.id, 'categoryId': email.category.id};
+                    $scope.doAction("deleteTopic", $httpParamSerializer(request));
+                }
+            }
+        });
+    </script>
+
+</html>
