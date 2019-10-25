@@ -15,6 +15,7 @@ import ru.kkb.isimple.entities.Branch;
 import ru.kkb.isimple.entities.Email;
 import ru.kkb.isimple.entities.EmailCategory;
 import ru.kkb.isimple.entities.EmailTopic;
+import ru.kkb.isimple.jmx.ExceptionMBean;
 
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,9 @@ public class EmailController {
     @Autowired
     private EmailDao emailDao;
 
+    @Autowired
+    private ExceptionMBean exceptionMBean;
+
     private final static String HOME_PAGE = "email";
     private final static String INTERNAL_SERVER_ERROR = "Внутренняя ошибка сервера";
 
@@ -56,12 +60,13 @@ public class EmailController {
                              @RequestParam(name = "name") String name) {
 
         try {
-            if (StringUtils.isEmpty(name)) {
+          /*  if (StringUtils.isEmpty(name)) {
                 return new Response("Наименование темы не может быть пустой");
-            }
+            } */
 
             emailTopicDao.setTopic(id, name);
         } catch (Exception ex) {
+            exceptionMBean.addException(ex);
             return new Response(ex.getMessage());
         }
 
@@ -80,6 +85,7 @@ public class EmailController {
             emailTopicDao.deleteTopic(id);
         } catch (Exception ex) {
             ex.printStackTrace();
+            exceptionMBean.addException(ex);
             return new Response(INTERNAL_SERVER_ERROR);
         }
 
@@ -100,6 +106,7 @@ public class EmailController {
 
             emailDao.setEmail(topicId, branchId, categoryId, email);
         } catch (Exception ex) {
+            exceptionMBean.addException(ex);
             return new Response(ex.getMessage());
         }
 
@@ -110,8 +117,11 @@ public class EmailController {
     public String deleteEmail(@RequestParam(name = "topicId") int topicId,
                               @RequestParam(name = "branchId") int branchId,
                               @RequestParam(name = "categoryId") int categoryId) {
-
-        emailDao.deleteEmail(topicId, branchId, categoryId);
+        try {
+            emailDao.deleteEmail(topicId, branchId, categoryId);
+        } catch (Exception ex) {
+            exceptionMBean.addException(ex);
+        }
 
         return HOME_PAGE;
     }
